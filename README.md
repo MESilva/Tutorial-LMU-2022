@@ -31,25 +31,24 @@ forecasting from a point of view of data analysis.
 ## Slides
 
 + [Introduction](Slides/1.pdf)
-+ [Time Series Plots]( )
-+ [Exploratory Time Series Analysis: decomposition]( )
-+ [Exploratory Time Series Analysis: transformations]( )
-+ [Dependence Measures]( )
-+ [ARIMA Models]( ) 
-+ [Forecasting]( ) 
-+ [Multivariate and Regression]( )
++ [Time Series Plots](Slides/2.pdf )
++ [Exploratory Time Series Analysis: decomposition and transformations](Slides/3.pdf )
++ [Dependence Measures](Slides/4.pdf )
++ [ARIMA Models](Slides/5.pdf) 
++ [Forecasting](Slides/6.pdf) 
++ [Crosscorrelation](Slides/7.pdf)
 
 
 ## Lab Sessions
 
-+ [Session 1 html](Lab Sessions/LabSession1.html )
-+  [Session 1 Rmd](Lab Sessions/LabSession1.Rmd )
-+ [Session 2 example 1 Modelling and Forecasting html](Lab Sessions/LabSession2_1.html) 
-+ [Session 2 example 1 Modelling and Forecasting Rmd](Lab Sessions/LabSession2_1.Rmd) 
-+ [Session 2 example 2 Modelling html](Lab Sessions/LabSession2_2.html)
-+ [Session 2 example 2 Modelling Rmd](Lab Sessions/LabSession2_2.Rmd)
-+ [Session 2 example 3 Forecasting html](Lab Sessions/LabSession2_3.html)
-+ [Session 2 example 3 Forecasting Rmd](Lab Sessions/LabSession2_3.Rmd)
++ [Session 1 html](Lab%20Sessions/LabSession1.html )
++  [Session 1 Rmd](Lab%20Sessions/LabSession1.Rmd )
++ [Session 2 example 1 Modelling and Forecasting html](Lab%20Sessions/LabSession2_1.html) 
++ [Session 2 example 1 Modelling and Forecasting Rmd](Lab%20Sessions/LabSession2_1.Rmd) 
++ [Session 2 example 2 Modelling html](Lab%20Sessions/LabSession2_2.html)
++ [Session 2 example 2 Modelling Rmd](Lab%20Sessions/LabSession2_2.Rmd)
++ [Session 2 example 3 Forecasting html](Lab%20Sessions/LabSession2_3.html)
++ [Session 2 example 3 Forecasting Rmd](Lab%20Sessions/LabSession2_3.Rmd)
 
 
 ## Data Sets
