@@ -1,0 +1,234 @@
+---
+title: "Forecasting with SARIMA: example 2"
+author: "Maria Eduarda Silva"
+email: "mesilva@fep.up.pt"
+institute: "School of Economics, University of Porto"
+date : LMU, July 1 2022
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Forecasting Total Private Residential Construction Spending
+
+## Introduction
+
+Having build  models for  the monthly Total Private Residential Construction Spending data we now study their forecasting performance.
+
+```{r}
+library(astsa)
+library(xts)
+library(zoo)
+library(forecast)
+library(Quandl)
+Quandl.api_key("XzdSwkDsE98Mxj3ixQzG")
+# Total Private Residential Construction Spending : FRED/PRRESCON
+```
+## Data 
+
+Data for this model are imported from Quandl website (FRED/PRRESCON). 
+
+```{r}
+prc <- Quandl("FRED/PRRESCON", type = "zoo")
+y=prc
+```
+
+```{r}
+yall<-window(y, end=2016+11/12)
+fstM <- 1993+0/12
+lstM <- 2013+11/12
+y1 <- window(yall, end=lstM)
+ly <- log(y1)
+y2 <- window(yall, start=lstM+1/12)
+```
+
+Previously we have obtained 3 models that are adequate to the time series (training set). The residuals are uncorrelated and all the parameters statistically significant.  Model m2 explains the serial correlation very well but some parameters are not statistically significant; model m21 has all the parameters statistically significant but there is a bit of serial correlation that remain unexplained. Model o11 has an AR(1)  how close to the non-stationarity region The coefficient for the seasonal AR component of model o11 is quite close to non-stationarity .
+
+|  Model| Order| N Par | AIC    | AICc    | BIC    | 
+|------:|-----:|----:| ----:  |--------:|-------:|
+| m2    |$(3,1,9)\times(1,1,1)_{12}$| 14|-1241.71|-1239.55 |-1189.56|
+|m21    | $(3,1,9)\times(1,1,1)_{12}$| 14-3| -1238.58|-1237.79 |-1207.29|
+|o11    |$(9,1,0)\times(1,0,0)_{12}$ | 10-4 | -1264    |-1263.4  |-1235.8|
+
+and therefore o11 has lower information criteria. 
+
+
+```{r}
+m2=Arima(ly, order = c(3,1,9), seasonal=list(order=c(1,1,1), period=12))
+m21=Arima(ly, order = c(3,1,9), seasonal=list(order=c(1,1,1), period=12), fixed=c(NA, NA, NA, NA, NA, NA, 0, NA, 0, 0, NA, NA, NA, NA))
+o11=Arima(ly, order = c(9,1,0), seasonal=list(order=c(1,0,0), period=12), fixed=c(NA,NA, 0,0,0,0,NA,NA,NA,NA))
+```
+We now study their performance in the test set.
+First we construct forecasts for the next 36 months, spanning January 2014 to December 2016.
+
+```{r}
+# construct 36 month ahead forecasts
+hmax <-36
+m2.f.h <- forecast(m2, h=hmax)
+m21.f.h <- forecast(m21, h=hmax)
+o11.f.h <- forecast(o11, h=hmax)
+str(m2.f.h)
+```
+
+Forecast accuracy evaluation. Results for the  the training set and test set are available. The  results for the training set  are obtained using the residuals. 
+
+
+```{r}
+# evaluate forecast accuracy in the test set
+m2.f.h.acc=accuracy(m2.f.h, log(y2))
+m21.f.h.acc=accuracy(m21.f.h, log(y2),d=0,D=1)
+o11.f.h.acc=accuracy(o11.f.h, log(y2),d=0,D=1)
+m2.f.h.acc
+m21.f.h.acc
+o11.f.h.acc
+```
+Training set
+
+|:------:|------:|-------:| ------:|--------:|
+|  Model| RMSE  | MAE    | MAPE   | MASE    | 
+|:------:|------:|-------:| ------:|--------:|
+| m2    |0.0165 | 0.0128 |  0.1254| 0.0990  |
+|m21    | 0.0166| 0.0129 | 0.1261 | 0.0994  |
+|o11    |0.0175 | 0.0137 | 0.1343 | 0.1055  |
+
+In the training set all models perform similarly. o11 presents worse measures (except MAPE) although  it presents better information criteria. This is because information criteria penalizes the number of parameters and o11 has the smallest number of parameters among the three models.
+
+Test set
+
+|:------:|------:|-------:| ------:|--------:|
+|  Model| RMSE  | MAE   | MAPE   | MASE    | 
+|:------:|------:|------:| ------:|--------:|
+| m2    |0.2811 | 0.2528|2.3991  | 1.9495   |
+|m21    | 0.2807| 0.2527|2.3980  | 1.9485  |
+|o11    |0.2020 | 0.1827|1.7348 | 1.4087   |
+
+In the test set model it is also model o11 that presents the best accuracy measures with a MAPE of 1.7%.
+
+You can access the confidence intervals in the forecast object: 95% CI
+```{r}
+m2.f.h$lower [1:12,2]
+m2.f.h$upper [,2]
+```
+The plot function when applied to an forecast object plots the confidence intervals. Now plot the forecasts and confidence intervals. We add the observed values- black line.
+
+```{r}
+# Plot forecast
+par(mfrow=c(2,2), cex=0.7, mar=c(2,4,3,1))
+plot(m2.f.h, xlim=c(1993,2016))
+lines(log(yall))
+plot(m21.f.h, xlim=c(1993,2016))
+lines(log(yall))
+plot(o11.f.h, xlim=c(1993,2016))
+lines(log(yall))
+```
+
+We conclude that all the models produce forecasts that overestimate the observed values. We can study in further detail how the models perform. 
+
+The following plots allow to look to the forecasts with more detail.
+
+```{r}
+par(mfrow=c(2,2), cex=0.7, mar=c(2,4,3,1))
+plot(m2.f.h, xlim=c(2014,2016),type="b")
+lines(log(yall),type ="b", col= "red")
+plot(m21.f.h, xlim=c(2014,2016),type="b")
+lines(log(yall),type ="b", col= "red")
+plot(o11.f.h, xlim=c(2014,2016),type="b")
+lines(log(yall),type ="b", col= "red")
+```
+
+An important question is whether the observed values are in fact covered by the confidence intervals. Also we like to know if the errors, e.g. , percentage errors vary systematically in time or with month. We can also make tables and compute percentage errors for each step-ahead.
+
+```{r}
+error.m2= abs(as.vector(log(y2))-m2.f.h$mean)/m2.f.h$mean*100
+error.m21= abs(as.vector(log(y2))-m21.f.h$mean)/m2.f.h$mean*100
+error.o11= abs(as.vector(log(y2))-o11.f.h$mean)/m2.f.h$mean*100
+plot(error.m2, ylab="error")
+lines(error.m21,col="green")
+lines(error.o11,col="blue")
+legend("topleft", legend=c("m2","m21","o11"),lty=c(1,1,1), text.col=c("black","green","blue"), col=c("black","green","blue"))
+```
+Note that the forecast errors grow with the number of steps ahead that we are forecasting. Next we compare 1 month ahead rolling forecasts for the 3  models.
+
+
+```{r}
+# construct 1 month ahead rolling forecasts from model m4, together with their confidence intervals
+m2.f.rol <- list()
+m21.f.rol <- list()
+o11.f.rol <- list()
+for(i in 1:(length(y2)+1))
+{
+  y <- window(yall, start=fstM+(i-1)/12, end=lstM+(i-1)/12 )
+  ly <- log(y)
+  m2.updt <- Arima(ly, order = c(3,1,9), seasonal=list(order=c(1,1,1), period=12))
+  m2.updt.f.1 <- forecast(m2.updt,1)
+  m2.f.rol$mean <- rbind(m2.f.rol$mean, as.zoo(m2.updt.f.1$mean))
+  m2.f.rol$lower <- rbind(m2.f.rol$lower, m2.updt.f.1$lower)
+  m2.f.rol$upper <- rbind(m2.f.rol$upper, m2.updt.f.1$upper)
+  
+  m21.updt <- Arima(ly, order = c(3,1,9), seasonal=list(order=c(1,1,1), period=12), fixed=c(NA, NA, NA, NA, NA, NA, 0, NA, 0, 0, NA, NA, NA, NA))
+  m21.updt.f.1 <- forecast(m21.updt,1)
+  m21.f.rol$mean <- rbind(m21.f.rol$mean, as.zoo(m21.updt.f.1$mean))
+  m21.f.rol$lower <- rbind(m21.f.rol$lower, m21.updt.f.1$lower)
+  m21.f.rol$upper <- rbind(m21.f.rol$upper, m21.updt.f.1$upper)
+  
+  o11.updt <- Arima(ly, order = c(9,1,0), seasonal=list(order=c(1,0,0), period=12), fixed=c(NA,NA, 0,0,0,0,NA,NA,NA,NA))
+  o11.updt.f.1 <- forecast(o11.updt,1)
+  o11.f.rol$mean <- rbind(o11.f.rol$mean, as.zoo(o11.updt.f.1$mean))
+  o11.f.rol$lower <- rbind(o11.f.rol$lower, o11.updt.f.1$lower)
+  o11.f.rol$upper <- rbind(o11.f.rol$upper, o11.updt.f.1$upper)
+}
+m2.f.rol$mean <- as.ts(m2.f.rol$mean)
+m2.f.rol$level <- m2.updt.f.1$level
+m2.f.rol$x <- window(m2.updt.f.1$x, end=lstM)
+class(m2.f.rol) <- class(m2.f.h)
+m21.f.rol$mean <- as.ts(m21.f.rol$mean)
+m21.f.rol$level <- m21.updt.f.1$level
+m21.f.rol$x <- window(m21.updt.f.1$x, end=lstM)
+class(m21.f.rol) <- class(m21.f.h)
+
+o11.f.rol$mean <- as.ts(o11.f.rol$mean)
+o11.f.rol$level <- o11.updt.f.1$level
+o11.f.rol$x <- window(o11.updt.f.1$x, end=lstM)
+class(o11.f.rol) <- class(o11.f.h)
+```
+
+
+
+```{r}
+
+par(mfrow=c(4,1), mar=c(2,4,2,2))
+
+# plot multistep ahead forecasts
+plot(m2.f.h, pch=20, xlim=c(2010,2016), ylim=c(9.5, 11.5), main=" M2 Multistep Ahead Forecasts")
+lines(m2.f.h$mean, type="p", pch=20, lty="dashed", col="blue")
+lines(log(yall), type="o", pch=20, lty="dashed")
+
+plot(m21.f.h, pch=20, xlim=c(2010,2016), ylim=c(9.5, 11.5), main=" M21 Multistep Ahead Forecasts")
+lines(m21.f.h$mean, type="p", pch=20, lty="dashed", col="blue")
+lines(log(yall), type="o", pch=20, lty="dashed")
+
+plot(o11.f.h, pch=20, xlim=c(2010,2016), ylim=c(9.5, 11.5), main=" o11 Multistep Ahead Forecasts")
+lines(o11.f.h$mean, type="p", pch=20, lty="dashed", col="blue")
+lines(log(yall), type="o", pch=20, lty="dashed")
+
+# plot 1 step ahead rolling forecasts form model m2
+plot(m2.f.rol, pch=20, xlim=c(2010,2016), ylim=c(9.5, 11.5), main=" 1-month Ahead Rolling Forecasts")
+lines(m2.f.rol$mean, type="p", pch=20, lty="dashed", col="black")
+lines(m21.f.rol$mean, type="p", pch=20, lty="dashed", col="green")
+lines(o11.f.rol$mean, type="p", pch=20, lty="dashed", col="blue")
+lines(log(yall), type="o", pch=20, lty="dashed", col="red")
+
+
+# evaluate forecast accuracy
+
+accuracy(m2.f.rol$mean, log(y2))
+accuracy(m21.f.rol$mean, log(y2))
+accuracy(o11.f.rol$mean, log(y2))
+```
+When we forecast 1-step-ahead the all the models perform similarly.
+
+These are forecasts for the log of the spending data. Now revert the log transformation (look in the slides or Hyndman book) and compare the 3 models.
+

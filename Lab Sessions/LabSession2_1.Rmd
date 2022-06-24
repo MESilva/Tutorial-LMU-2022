@@ -1,0 +1,133 @@
+---
+title: " Modelling and Forecasting  with SARIMA Models "
+author: "Maria Eduarda Silva"
+email: "mesilva@fep.up.pt"
+institute: "School of Economics, University of Porto"
+date : LMU, July 1 2022
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# Hands on
+
+* Consider the time series you have already analised
++ Plot the data. Does it look stationary?
++ Calculate and plot ACF and PACF. Which model do these plots suggest?
++ Fit such a model using sarima function.
++ Comment on the significance of the parameter estimates
++ Examine the residuals. Are they white noise?
++ Repeat with an higher/lower order model.
++ Split the data into train (80%) and test set (20%)
++ Model the train set
++ Obtain forecasts for the test set. Measure the accuracy of the forecasts. 
++ Summarize your findings in a table:
+
+
+| Date | Observed | Forecast | MAPE | Lower | Upper |  CI | Contains true |
+|:----:|:--------:|:--------:|:----:|:-----:|:-----:|:---:|:-------------:|
+| |  |  | |  |  |  |  |
+--------------------------
+
+
+# Modelling CARDOX 
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+library(fpp2)
+library(astsa)
+```
+
+Monthly mean carbon dioxide (in ppm) measured at Mauna Loa Observatory, Hawaii. 
+March, 1958 to November, 2018
+
+```{r}
+tsplot(cardox)
+```
+
+
+# Seasonal Difference of CARDOX
+```{r}
+par(mfrow=c(2,1))
+tsplot(diff(cardox,12), main="1  seasonal difference of Cardox")
+acf2(diff(cardox,12))
+```
+
+# Simple difference of CARDOX
+
+```{r}
+par(mfrow=c(2,1))
+tsplot(diff(cardox,1), main =" Simple difference of Cardox")
+acf2(diff(cardox,1))
+```
+ 
+# Simple and Seasonal difference of CARDOX
+
+```{r}
+par(mfrow=c(2,1))
+tsplot(diff(diff(cardox,12),1), main = " Simple ")
+acf2(diff(diff(cardox,12),1))
+```
+ 
+How do we know that we did noi difference neither too much not too little?
+
+* Too many differences will induce a unit root in the MA component  
+* There are tests called unit root tests, ADF, KPSS are the most well know that helpto decide whetehr to difference or not. The functions ndiffs and nsdiffs indicate the number of differences required, simple and seasonal, respectively. 
+
+ 
+# A SARIMA Model for CARDOX
+ 
+```{r echo=TRUE}
+cardox_fit1 = sarima(cardox,1,1,1,1,1,1,12)
+cardox_fit1
+```
+
+Residuals are uncorrelated but the AR coefficient for the seasonal componente is not statistically differente from 0 so we remove it
+
+
+
+```{r echo=TRUE}
+cardox_fit2=sarima(cardox,1,1,1,0,1,1,12, no.constant = TRUE)
+cardox_fit2
+```
+
+The residuals are still uncorrelated and all the coefficients are significant - a good model
+
+# Identifying over-differencing
+
+Now we take 2 seasonal differences and keep only MA components
+
+```{r echo=TRUE}
+cardox_fit3=sarima(cardox,0,1,1,0,2,1,12, no.constant = TRUE)
+cardox_fit3
+```
+
+The residuals are no longer uncorrelated and a near unit root appears in the seasonal MA component due to over-differencing.
+
+# Forecasting CARDOX
+
+```{r}
+cardox_train = window(cardox, end=2017+11/12)
+cardox_test  =  window(cardox, start=2017+11/12)
+cardox_train_fit = sarima(cardox_train,1,1,1,0,1,1,12, no.constant = TRUE)
+cardox_for = sarima.for(cardox_train,12,1,1,1,0,1,1,12)
+points(window(cardox, start=2010))
+```
+
+```{r}
+cardox_for$pred
+cardox_for$se
+accuracy(cardox_for$pred, cardox_test)
+```
+
+```{r}
+accuracy(cardox_for$pred, cardox_test)
+```
+
+```{r}

@@ -1,0 +1,171 @@
+---
+title: 'Lab Session 1: Exploratory Analysis '
+output:
+  html_document: default
+  pdf_document: default
+date: '2022-07-01'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Hands on
+
+* Choose a time series either from a package, "fpp2" or "astsa" and perform a preliminary or exploratory analysis of the  time series of your choice. 
+* This analysis should address the main characteristics of the time series:
+  + Plot the data: does the series present trend, seasonality, change points, strange observations, heterocedasticity?
+  + Compute the acf and interpret it. 
+  + Use stl() to decompose the time series and study the remainder  regarding stationarity and autocorrelation.
+  + Filter the data with the appropriate difference operators and study the characteristics of the resulting time series.
+  
+* Suggested data sets
+  + fpp2: a10, ausbeer, auscafe, goo200, h02, hyndsight, elecsales 
+  + astsa: UnempRate, birth, cmort, djia, gtemp_land, gtemp_ocean,hor, soi, rec
+  + Temp_Barcelos.csv: mean monthly temperature in Barcelos (a small town in Portugal), January 1982 - November 2020
+  + tute1.csv
+  + retail.xls
+  + milk.txt
+  
+# R and Packages
+
+There are several R packages for time series. We will use "astsa" developed by [Stoffer](https://www.stat.pitt.edu/stoffer/tsda/);  "fpp2" developed by [Hyndman](https://github.com/robjhyndman/fpp2-package) that contains the data for the examples in  [Forecasting: Principles and Practice, 2nd ed](https://otexts.com/fpp2/)
+
+Install the packages
+```{r}
+install.packages(c("fpp2","forecast","astsa"),repos=c(CRAN = "http://cran.rstudio.com"))
+```
+
+Load the packages
+```{r}
+library(astsa)
+library(fpp2)
+library(forecast)
+```
+
+# Reading the data and converting to time series
+
+## Example with csv file. 
+"tute1.csv" contains quarterly series, labelled Sales, AdBudget and GDP. Sales contains the quarterly sales for a small company over the period 1981-2005. AdBudget is the advertising budget and GDP is the gross domestic product. All series have been adjusted for inflation. 
+### Read the data into R with the following script:
+```{r}
+tute1 <- read.csv("tute1.csv", header=TRUE)
+head(tute1)
+```
+
+### Convert the data to time series
+```{r}
+mytimeseries <- ts(tute1[,-1], start=1981, frequency=4)
+#(The [,-1] removes the first column which contains the quarters as we don’t need them now.)
+```
+
+### Construct time series plots of each of the three series
+```{r}
+autoplot(mytimeseries, facets=TRUE)
+```
+
+## Example with xls file. 
+"retail.xls" contains monthly Australian retail data. These represent retail sales in various categories for different Australian states.
+++ Read the data
+```{r}
+retaildata <- readxl::read_excel("retail.xlsx", skip=1)
+#The second argument (skip=1) is required because the Excel sheet has two header rows.
+```
+++ Select one of the time series as follows (but replace the column name with your own chosen column)
+```{r}
+myts <- ts(retaildata[,"A3349873A"],
+  frequency=12, start=c(1982,4))
+```
+
+## Example with a txt file. 
+"milk.txt" contains the monthly milk production per cow from January 1962 to December 1975.
+```{r}
+milk = ts(scan("milk.txt"), start=c(1962,1), frequency=12)
+```
+
+# Time series plots
+I am going to illustrate with the CARDOX time series.
+
+## Time plots
+```{r}
+data(cardox,package="astsa")
+tsplot(cardox, ylab="ppm", main="Monthly Carbon Dioxide Levels at Mauna Loa, March 1958 to November 2018")
+tsplot(window(cardox,start=2000,end=2010), ylab="ppm", main="Monthly Carbon Dioxide Levels, Jan 2000 to Dec 2010",type="b")
+```
+
+## Seasonal plots
+```{r}
+ggmonthplot(cardox)+
+  ylab("ppm") +
+  ggtitle("Seasonal plot: Cabon dioxine ")
+```
+
+The blue lines represent the mean of the corresponding month. Be careful because this mean has no meaning since the data presents trend. 
+
+```{r}
+ggseasonplot(cardox)
+```
+
+## Lag plots
+```{r}
+lag1.plot(cardox,12)
+```
+# Stl decomposition
+The Seasonal Decomposition of Time Series by Loess is implemented in R in the stl() function and decomposes a time series into seasonal, trend and irregular components using loess. The seasonal component is found by loess smoothing the seasonal sub-series (the series of all January values, ...); if s.window = "periodic" smoothing is effectively replaced by taking the mean. The seasonal values are removed, and the remainder smoothed to find the trend. The overall level is removed from the seasonal component and added to the trend component. This process is iterated a few times. The remainder component is the residuals from the seasonal plus trend fit.
+
+```{r}
+cardox.stlper=stl(cardox, s.window="periodic")
+cardox.stl=stl(cardox, s.window=13)
+plot(cardox.stlper)
+plot(cardox.stl)
+```
+
+Justo to inspect/retrieve the components
+```{r}
+cardox.stlper$time.series[1:24,]
+cardox.stl$time.series[1:24,]
+```
+
+# Study the serial correlation
+
+To investigate the correlation behaviour of the remainder.
+++ with lag plots
+```{r}
+lag1.plot(cardox.stlper$time.series[,3],12)
+lag1.plot(cardox.stl$time.series[,3],12)
+```
+
+## with acf function
+```{r}
+acf(cardox)
+acf(cardox.stlper$time.series[,3])
+```
+
+## with acf and pacf
+```{r}
+acf2(cardox.stlper$time.series[,3], max.lag = 30)
+```
+
+The correlation in the series remainder is much less than in the original time series. Most of the trend and seasonality has been removed but there is still correlation in the data that must be accounted for.
+
+# Difference operator and seasonal difference operator
+The **difference operator**, $\nabla= 1-B$ where $B$ is the **lag operator** $B x_t=x_{t-1}$. So $$\nabla x_t = (1-B ) x_t =x_t -B x_{t} = x_t- x_{t-1}$$
+
+The resulting time series $y_t=\nabla x_t$ represents the increments or change of $x$ on consecutive time points. Take the price of chicken, $x_t$. Then $y_t = x_t- x_{t-1}$ represents the monthly increase of price: from January to February, February to March, etc.
+
+The seasonal difference operator is defined as $\nabla^S=1-B^S$, where $S$ is the seasonality. Remember that $B^S x_t= x_{t-S}$ so $\nabla^S x_t= x_t - x_{t-S}$ and representes the increments over the seasonal period, usually annual increments.
+
+
+```{r}
+par(mfrow=c(2,1))
+tsplot(cardox, ylab="ppm", col=4, lwd=2)
+tsplot(diff(cardox), ylab="ppm", col=4, lwd=2, main="Monthly increments of carbom dioxide")
+acf2(diff(cardox))
+tsplot(diff(cardox,12), ylab="ppm", col=4, lwd=2, main="Annual increments of carbon dioxide")
+acf2(diff(cardox,12))
+tsplot(diff(diff(cardox),12), ylab="ppm", col=4, lwd=2, main="Detrended and deseasonalized  carbon dioxide")
+acf2(diff(diff(cardox),12))
+```
+
+The twice differenced series does not present trend or seasonality but there is still correlation in the data that must be accounted for.
+

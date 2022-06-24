@@ -1,0 +1,210 @@
+---
+title: "Modelling with SARIMA: example 2"
+author: "Maria Eduarda Silva"
+email: "mesilva@fep.up.pt"
+institute: "School of Economics, University of Porto"
+date : LMU, July 1 2022
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Modelling Total Private Residential Construction Spending
+
+## Introduction
+
+Build a model for  the monthly Total Private Residential Construction Spending data following the Box-Jenkins methodology. The data set is available in The  Federal Bank of St Louis.
+
+```{r}
+library(astsa)
+library(xts)
+library(zoo)
+library(forecast)
+library(Quandl)
+Quandl.api_key("XzdSwkDsE98Mxj3ixQzG")
+# Total Private Residential Construction Spending : FRED/PRRESCON
+```
+## Data 
+
+Data for this model are imported from Quandl website (FRED/PRRESCON). 
+
+```{r}
+prc <- Quandl("FRED/PRRESCON", type = "zoo")
+y=prc
+str(y)
+par(mfrow = c(2, 1))
+plot(y, xlab="Year", ylab="Spending", main="Total Private Residential Construction Spending")
+acf(y)
+```
+
+This time series shows the seasonality and trend so we need to consider a seasonal AR or MA component as well as a regular AR or MA component. The variability seems to  change somewhat over time so I will consider also the logged data. First choose train set and test set.
+
+```{r}
+yall<-window(y, end=2016+11/12)
+fstM <- 1993+0/12
+lstM <- 2013+11/12
+y1 <- window(yall, end=lstM)
+y2 <- window(yall, start=lstM+1/12)
+```
+Now consider the training set and its log. 
+```{r}
+y<- y1
+ly <- log(y)
+
+# Original and transformed data
+par(mfrow = c(2, 1))
+plot(y, main = expression(y))
+plot(ly, main = expression(log(y)))
+```
+
+The logged data looks more stable. From now we study logged data. To find out the best SARIMA$(p,d,q)\times (P,D,Q)_{12}$ we study the acf and pacf of the differenced data with $d=1,$ $D=1,$ $d=1 $ and $D=1$. Plot the data and its acf and pacf.
+```{r}
+dly1 <- diff(ly)
+dly12 <- diff(ly,12)
+dly12_1 <- diff(diff(ly),12)
+```
+
+ 
+```{r}
+maxlag <- 48
+par(mfrow=c(3,4), mar=c(3,3,4,2))
+
+plot(ly, main = expression("log(y)"))
+plot(dly1, main = expression(paste(Delta, "log(y)")))
+plot(dly12, main = expression(paste(Delta[12], "log(y)")))
+plot(dly12_1, main = expression(paste(Delta, Delta[12], "log(y)")))
+
+Acf(ly, type='correlation', lag=maxlag, ylab="", main=expression(paste("ACF for log(y)")))
+Acf(dly1, type='correlation', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("ACF for ", Delta,"log(y)")))
+Acf(dly12, type='correlation', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("ACF for ", Delta[12], "log(y)")))
+Acf(dly12_1, type='correlation', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("ACF for ", Delta, Delta[12], "log(y)")))
+
+Acf(ly, type='partial', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("PACF for log(y)")))
+Acf(dly1, type='partial', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("PACF for ", Delta, "log(y)")))
+Acf(dly12, type='partial', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("PACF for ", Delta[12], "log(y)")))
+Acf(dly12_1, type='partial', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("PACF for ", Delta,Delta[12], "log(y)")))
+```
+
+From the plots we choose $d=1$ and $D=1$. Check with the functions ndiffs() and nsdiffs().
+
+```{r}
+nsdiffs(as.ts(ly))
+ndiffs(diff(as.ts(ly),12))
+ndiffs(diff(diff(as.ts(ly),12)))
+```
+
+It is not easy to indicate a model. PACF points to an AR model. I will start with a large $p$ and small seasonal order $P$.
+```{r echo=TRUE}
+m1=sarima(ly,9,1,1,1,1,1,12)
+m1
+```
+The residuals are quite correlated and most of the AR parameters are not statistically significant.  Let's see in detail the serial correlation of the residuals.
+```{r}
+acf2(m1$fit$residuals)
+```
+The ACF and PACF of the residuals do not point clearly to a model but since we have already discarded an AR with large $p$ we will now increase the order of the MA component.
+
+
+```{r}
+m2=sarima(ly,3,1,9,1,1,1,12)
+m2
+```
+
+Since several parameters are not statistically significant we will make them zero and re-estimate the model. But we have to use a different function.
+
+```{r}
+m21=Arima(ly, order = c(3,1,9), seasonal=list(order=c(1,1,1), period=12), fixed=c(NA, NA, NA, NA, NA, NA, 0, NA, 0, 0, NA, NA, NA, NA))
+m21
+```
+
+But now we have to recalculated the Ljung-Box statistic. 
+
+```{r}
+myLB= function(x.fit){
+  res=NULL
+  npar= dim(x.fit$var.coef)[1]
+for (i in (npar+1):40){
+  q=Box.test(x.fit$residuals,lag=i,type="Ljung-Box",fitdf=npar)
+  res[i]=q$p.value}
+  return(res)}
+ 
+```
+
+```{r}
+par(mfrow=c(2,2), mar=c(3,3,4,2))
+Acf(m21$residuals, type='correlation', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("ACF for Residuals")))
+Acf(m21$residuals, type='partial', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("PACF Residuals")))
+plot(myLB(m21),ylim=c(0,1))
+abline(h=0.05,col="blue",lty=2)
+```
+
+The residuals remain mostly uncorrelated and all the parameters are statistically significant
+
+
+Conclusion so far: model m2 explains the serial correlation very well but some parameters are not statistically significant; model m21 has all the parameters statistically significant but there is a bit of serial correlation that remain unexplained. 
+
+Now we compare the models using information criteria. Note the AIC, AICc and BIC computed by SARIMA and Arima fucntions are not the same. Therefore we compute those measure for model 2 using Arima
+
+```{r}
+Arima(ly, order = c(3,1,9), seasonal=list(order=c(1,1,1), period=12))
+```
+
+Regarding the information criteria we have
+
+|  Model| Order| N Par|AIC    | AICc    | BIC    | 
+|------:|-----:|----:|----:|--------:|-------:|
+| m2    |$(3,1,9)\times(1,1,1)_{12}$| 14 |-1241.71|-1239.55 |-1189.56|
+|m21    | $(3,1,9)\times(1,1,1)_{12}$| 14-3| -1238.58|-1237.79 |-1207.29|
+
+
+and therefore m2 has lower information criteria. Which will produce better forecasts remains to be seen.
+
+Although the tests point to a non-stationary seasonality, now we try to fit a model to the monthly increases, that is for $d=1.$
+
+```{r}
+acf2(dly1)
+```
+
+ACF and PACF point to an AR model with a large $p$ and a seasonal component.
+
+```{r}
+o1=sarima(ly,10,1,0,1,0,0,12)
+o1
+```
+$a_{i}$ $i=3,4,5,6,10$ are not statistically significant therefore we re-estimate the model 
+
+
+```{r}
+o11=Arima(ly, order = c(9,1,0), seasonal=list(order=c(1,0,0), period=12), fixed=c(NA,NA, 0,0,0,0,NA,NA,NA,NA))
+o11
+```
+
+```{r}
+par(mfrow=c(2,2), mar=c(3,3,4,2))
+Acf(o11$residuals, type='correlation', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("ACF for Residuals")))
+Acf(o11$residuals, type='partial', lag=maxlag, na.action=na.omit, ylab="", main=expression(paste("PACF Residuals")))
+plot(myLB(o11),ylim=c(0,1))
+abline(h=0.05,col="blue",lty=2)
+```
+
+
+The residuals are uncorrelated and all the parameters statistically significant. Notice how close to the non-stationarity region the coeficient for the seasonal AR component is. However including more AR or MA components leads to statistically non- significant parameters.
+
+```{r}
+o12=sarima(ly,9,1,0,2,0,0,12)
+o12
+```
+
+Regarding the information criteria we have
+
+|  Model| Order| N Par | AIC    | AICc    | BIC    | 
+|------:|-----:|----:| ----:  |--------:|-------:|
+| m2    |$(3,1,9)\times(1,1,1)_{12}$| 14|-1241.71|-1239.55 |-1189.56|
+|m21    | $(3,1,9)\times(1,1,1)_{12}$| 14-3| -1238.58|-1237.79 |-1207.29|
+|o11    |$(9,1,0)\times(1,0,0)_{12}$ | 10-4 | -1264    |-1263.4  |-1235.8|
+
+and therefore o11 has lower information criteria. Which will produce better forecasts remains to be seen.
+In another video we will use this model to produce forecasts.
