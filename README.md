@@ -57,7 +57,7 @@ forecasting from a point of view of data analysis.
 + [Temp_Barcelos.csv: mean monthly temperature in Barcelos (a small
   town in Portugal), January 1982 - November 2020](Data/Temp_Barcelos.csv )
 + [tute1.csv]( Data/tute1.csv)
-+ [retail.xls](Data/retail.xls )
++ [retail.xls](Data/retail.xlsx )
 + [milk.txt](Data/milk.txt)
 
 
