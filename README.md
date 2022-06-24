@@ -42,14 +42,14 @@ forecasting from a point of view of data analysis.
 
 ## Lab Sessions
 
-+ [Session 1 html](LabSessions/LabSession1.html )
-+  [Session 1 Rmd](LabSessions/LabSession1.Rmd )
-+ [Session 2 example 1 Modelling and Forecasting](LabSessions/LabSession2_1.html) 
-+ [Session 2 example 1 Modelling and Forecasting](LabSessions/LabSession2_1.Rmd) 
-+ [Session 2 example 2 Modelling](LabSessions/LabSession2_2.html)
-+ [Session 2 example 2 Modelling](LabSessions/LabSession2_2.Rmd)
-+ [Session 2 example 3 Forecasting](LabSessions/LabSession2_3.html)
-+ [Session 2 example 3 Forecasting](LabSessions/LabSession2_3.Rmd)
++ [Session 1 html](Lab Sessions/LabSession1.html )
++  [Session 1 Rmd](Lab Sessions/LabSession1.Rmd )
++ [Session 2 example 1 Modelling and Forecasting html](Lab Sessions/LabSession2_1.html) 
++ [Session 2 example 1 Modelling and Forecasting Rmd](Lab Sessions/LabSession2_1.Rmd) 
++ [Session 2 example 2 Modelling html](Lab Sessions/LabSession2_2.html)
++ [Session 2 example 2 Modelling Rmd](Lab Sessions/LabSession2_2.Rmd)
++ [Session 2 example 3 Forecasting html](Lab Sessions/LabSession2_3.html)
++ [Session 2 example 3 Forecasting Rmd](Lab Sessions/LabSession2_3.Rmd)
 
 
 ## Data Sets
