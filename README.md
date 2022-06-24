@@ -11,7 +11,7 @@ characteristics, namely serial correlation, which required special
 methods. Forecasting is estimating how the sequence of observations
   will continue into the future. 
   
-This tutorial is an introduction to the analysis of timne series and
+This tutorial is an introduction to the analysis of time series and
 forecasting from a point of view of data analysis. 
  
 ## Schedule
@@ -56,8 +56,8 @@ forecasting from a point of view of data analysis.
 
 + [Temp_Barcelos.csv: mean monthly temperature in Barcelos (a small
   town in Portugal), January 1982 - November 2020](Data/Temp_Barcelos.csv )
-+ [tute1.csv]( )
-+ [retail.xls]( )
++ [tute1.csv]( Data/tute1.csv)
++ [retail.xls](Data/retail.xls )
 + [milk.txt](Data/milk.txt)
 
 
