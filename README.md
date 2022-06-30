@@ -25,7 +25,7 @@ forecasting from a point of view of data analysis.
 |12:30-13:30 | *Lunch Break*| 
 | 13:30-15:00| Session 3| 
 |15:00-15:15 | *Coffee Break*| 
-| 15:15-17:00 | Session 2 |
+| 15:15-17:00 | Session 4 |
 
 
 ## Slides
